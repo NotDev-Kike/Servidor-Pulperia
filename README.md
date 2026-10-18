@@ -5,11 +5,13 @@ Sistema web para administrar una pulpería, tienda de barrio o minisúper. Inclu
 ## Características principales
 
 - Punto de venta para registrar ventas rápidamente.
-- Carrito de compra con cantidades, descuentos e ISV.
-- Métodos de pago: efectivo, tarjeta, transferencia y crédito.
+- Carrito de compra con cantidades y precio final configurado.
+- No se aplican impuestos ni descuentos: el precio registrado es el precio final de venta.
+- Métodos de pago: efectivo, transferencia y crédito autorizado.
 - Control automático de existencias después de cada venta.
 - Inventario con código de barras, precio, costo, stock mínimo, ISV, categoría y proveedor.
-- Clientes con límite de crédito, saldo pendiente y registro de pagos.
+- Clientes con autorización de crédito, saldo pendiente y registro ordenado de pagos.
+- Validación de transferencias mediante referencia y banco o plataforma.
 - Compras que incrementan el stock y actualizan el costo del producto.
 - Proveedores.
 - Reportes de ventas y compras para administración.
@@ -44,7 +46,7 @@ El vendedor tiene un flujo simplificado para operar la tienda:
 
 - Al iniciar sesión entra directamente al Punto de venta.
 - Puede vender y cobrar productos.
-- Puede aplicar descuentos y seleccionar métodos de pago.
+- Puede seleccionar métodos de pago.
 - Puede seleccionar clientes para ventas a crédito.
 - Puede consultar y registrar clientes.
 - Puede agregar o actualizar productos del inventario.
@@ -178,7 +180,7 @@ npm run preview
 3. Se buscan productos escribiendo el nombre, código o usando el escáner.
 4. Se agregan productos al carrito.
 5. Se selecciona cliente si corresponde.
-6. Se define descuento, método de pago y monto recibido.
+6. Se define método de pago y monto recibido.
 7. Se cobra la venta.
 8. Supabase registra la venta y sus líneas.
 9. El stock se descuenta automáticamente.
@@ -216,6 +218,11 @@ Todas las rutas protegidas requieren una sesión válida.
 - `GET /api/customers`: listar clientes.
 - `POST /api/customers`: crear cliente.
 - `POST /api/customers/:id/payments`: registrar pago de cliente.
+- `GET /api/customers/:id/payments`: consultar historial de pagos.
+- `PUT /api/customers/:id/credit`: autorizar o revocar crédito de un cliente.
+- `GET /api/transfers/pending`: listar transferencias pendientes de validación.
+- `POST /api/sales/:id/verify-transfer`: aprobar o rechazar una transferencia.
+- `POST /api/payments/:id/verify-transfer`: aprobar o rechazar un pago de deuda por transferencia.
 
 ### Compras y proveedores
 
