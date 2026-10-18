@@ -324,4 +324,18 @@ El sistema ya cuenta con la operación principal de una pulpería. Las mejoras r
 
 ## Licencia
 
-Proyecto privado para la gestión de una pulpería o minisúper. Define una licencia antes de distribuirlo públicamente.
+AVISO DE DERECHOS DE AUTOR Y LICENCIA PRIVATIVA
+
+Copyright (c) [2026] [José Enrique Pineda Rivera]. 
+Todos los derechos reservados.
+
+Este software, incluyendo su código fuente, diseño, interfaces, bases de datos y documentación adjunta, es propiedad exclusiva de [José Enrique Pineda Rivera].
+
+QUEDA ESTRICTAMENTE PROHIBIDO:
+1. Copiar, reproducir, duplicar, distribuir o sublicenciar este software o cualquier parte de su código sin el consentimiento previo y por escrito del titular de los derechos de autor.
+2. Modificar, alterar, realizar ingeniería inversa, descompilar o crear obras derivadas basadas en este software.
+3. Utilizar este software con fines comerciales, empresariales o de gestión de establecimientos comerciales sin adquirir una licencia de uso comercial válida otorgada por el autor.
+
+El software se publica en este repositorio únicamente con fines de [desarrollo privado / respaldo], lo cual no otorga ningún derecho de explotación, uso o copia a los visitantes del repositorio.
+
+ESTE SOFTWARE SE PROPORCIONA "TAL CUAL", SIN GARANTÍA DE NINGÚN TIPO, EXPRESA O IMPLÍCITA, INCLUYENDO PERO NO LIMITADO A GARANTÍAS DE COMERCIABILIDAD, ADECUACIÓN PARA UN PROPÓSITO PARTICULAR Y NO INFRACCIÓN. EN NINGÚN CASO LOS AUTORES O TITULARES DE LOS DERECHOS DE AUTOR SERÁN RESPONSABLES DE NINGUNA RECLAMACIÓN, DAÑOS U OTRAS RESPONSABILIDADES.
