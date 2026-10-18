@@ -1,4 +1,4 @@
-# Pulpería · Sistema de gestión para minisúper
+# Pulpería · Sistema de gestión
 
 Sistema web para administrar una pulpería, tienda de barrio o minisúper. Incluye punto de venta, inventario, clientes, compras, proveedores, usuarios y conexión con Supabase PostgreSQL.
 
