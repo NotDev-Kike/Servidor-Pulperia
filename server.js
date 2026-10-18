@@ -29,7 +29,7 @@ const saleView = row => ({...row, id:Number(row.id), total:Number(row.total), su
 const moneyView = row => row && ({...row, id:Number(row.id), subtotal:Number(row.subtotal||0), tax:Number(row.tax||0), total:Number(row.total||0), discount:Number(row.discount||0)});
 function issue(user,res){res.cookie('session',jwt.sign({id:user.id,username:user.username,role:user.role},JWT_SECRET,{expiresIn:'8h'}),{httpOnly:true,sameSite:'lax',secure:process.env.NODE_ENV==='production',maxAge:28800000});}
 function auth(req,res,next){try{req.user=jwt.verify(req.cookies.session||'',JWT_SECRET);next()}catch{res.status(401).json({error:'Sesión no válida'})}}
-function adminOnly(req,res,next){if(req.user?.role!=='admin')return res.status(403).json({error:'Se requiere rol administrador'});next()}
+function adminOnly(req,res,next){if(req.user?.role==='vendedor'&&['POST','PUT'].includes(req.method)&&req.path.startsWith('/api/products'))return next();if(req.user?.role!=='admin')return res.status(403).json({error:'Se requiere rol administrador'});next()}
 function parsed(schema,body,res){const result=schema.safeParse(body);if(!result.success){res.status(400).json({error:result.error.issues[0]?.message||'Datos inválidos'});return null}return result.data}
 function dbError(res,error,status=400){console.error(error);return res.status(status).json({error:error.message||'Error de base de datos'})}
 
