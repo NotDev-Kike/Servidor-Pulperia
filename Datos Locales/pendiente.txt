@@ -1,0 +1,29 @@
+parametros.php
+
+Revisar la parte del impuesto (isv) para manejar uno solo para cada producto a vender (esto es cambiante de acuerdo al gobierno del pais)
+
+
+Cambios = 
+
+Productos 
+- cuando se agregue los productos aplicar de un solo el isv
+- Agregar un carrito (para que seleccione todo lo que quiera y mandarlo por WhatsApp de un solo)
+
+
+Factura =
+
+- Parametros / crear impuestos varios
+- factura_form = por cada producto manejar su propio ISV y que haga la sumatoria de ISV
+- detallar impuestos con su valor en la factura a crear
+
+- Revisar producto agregado y efectuar descuento dependiendo cual quiera o aplique al cliente
+
+Descuento =
+
+- descuento promocional = Reducción directa aplicada en la factura
+- Descuento por Volumen = Reducción concedida cuando el comprador adquiere una gran cantidad de productos o supera un importe de compra determinado.
+- Descuento por Fidelidad: Recompensa a clientes habituales por su apoyo continuado.
+
+Productos = 
+
+- colocar productos total del producto

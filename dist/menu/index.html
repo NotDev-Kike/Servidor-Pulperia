@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Menú</title>
+
+<style>
+body {
+  font-family: Arial;
+  margin: 0;
+  background: #ecf0f1;
+}
+
+.header {
+  background: #2c3e50;
+  color: white;
+  padding: 15px;
+  font-size: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.user {
+  font-size: 14px;
+}
+
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: calc(100vh - 80px);
+}
+
+.menu {
+  display: grid;
+  grid-template-columns: repeat(2, 220px);
+  gap: 30px;
+}
+
+.card {
+  height: 180px;
+  border-radius: 15px;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  font-size: 20px;
+  transition: 0.2s;
+  box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+}
+
+.card:hover {
+  transform: scale(1.07);
+}
+
+.icon {
+  font-size: 50px;
+  margin-bottom: 10px;
+}
+
+.pos { background: #27ae60; }
+.prod { background: #3498db; }
+.admin { background: #8e44ad; }
+
+.footer {
+  position: fixed;
+  bottom: 20px;
+  width: 100%;
+  text-align: center;
+}
+
+.logout {
+  padding: 12px 25px;
+  font-size: 16px;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+@media (max-width: 600px) {
+  .menu {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="header">
+  <span>🛒 Sistema Pulpería</span>
+  <span class="user" id="usuario"></span>
+</div>
+
+<div class="container">
+
+  <div class="menu">
+
+    <div class="card pos" onclick="go('/pos')">
+      <div class="icon">🛒</div>
+      Ventas
+    </div>
+
+    <div class="card prod" onclick="go('/proveedores')">
+      <div class="icon">📦</div>
+      Productos
+    </div>
+
+    <div class="card admin" id="btnAdmin" onclick="go('/admin')">
+      <div class="icon">📊</div>
+      Panel
+    </div>
+
+  </div>
+
+</div>
+
+<div class="footer">
+  <button class="logout" onclick="logout()">Salir</button>
+</div>
+
+<script>
+
+if (!localStorage.getItem("auth")) {
+  window.location.href = "/login";
+}
+
+const role = localStorage.getItem("role");
+
+document.getElementById("usuario").innerText = "Rol: " + role;
+
+if (role !== "admin") {
+  document.getElementById("btnAdmin").style.display = "none";
+}
+
+function go(ruta) {
+
+  if (ruta === "/admin" && role !== "admin") {
+    alert("No tienes acceso");
+    return;
+  }
+
+  window.location.href = ruta;
+}
+
+function logout() {
+  localStorage.removeItem("auth");
+  localStorage.removeItem("role");
+  window.location.href = "/login";
+}
+
+document.addEventListener("keydown", (e) => {
+
+  if(e.key === "1") go("/pos");
+  if(e.key === "2") go("/proveedores");
+  if(e.key === "3" && role === "admin") go("/admin");
+
+});
+</script>
+
+</body>
+</html>

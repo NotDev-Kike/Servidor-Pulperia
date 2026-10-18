@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Usuarios</title>
+
+<style>
+body {
+  font-family: Arial;
+  margin: 0;
+  background: #f4f6f9;
+}
+
+.header {
+  background: #2c3e50;
+  color: white;
+  padding: 15px;
+  font-size: 20px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.header button {
+  background: #e74c3c;
+  border: none;
+  color: white;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.container {
+  display: flex;
+  justify-content: center;
+  margin-top: 50px;
+}
+
+.card {
+  background: white;
+  padding: 25px;
+  border-radius: 8px;
+  width: 320px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+input, select {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+
+button.main {
+  width: 100%;
+  padding: 12px;
+  margin-top: 15px;
+  background: #27ae60;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+button.secondary {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  background: #95a5a6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  <span>👥 Gestión de Usuarios</span>
+  <button onclick="volver()">⬅ Panel</button>
+</div>
+
+<div class="container">
+
+  <div class="card">
+
+    <h3>Crear Usuario</h3>
+
+    <input id="user" placeholder="Usuario">
+    <input id="pass" placeholder="Contraseña" type="password">
+
+    <select id="role">
+      <option value="admin">Admin</option>
+      <option value="vendedor">Vendedor</option>
+    </select>
+
+    <button class="main" onclick="crear()">Crear Usuario</button>
+    <button class="secondary" onclick="limpiar()">Limpiar</button>
+
+  </div>
+
+</div>
+
+<script>
+if (!localStorage.getItem("auth")) {
+  window.location.href = "/login";
+}
+
+async function crear() {
+
+  const res = await fetch('/api/users', {
+    method:'POST',
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({
+      username: user.value,
+      password: pass.value,
+      role: role.value
+    })
+  });
+
+  const data = await res.json();
+
+  if(data.error){
+    alert(data.error);
+  } else {
+    alert("Usuario creado");
+    limpiar();
+  }
+}
+
+function limpiar(){
+  user.value = "";
+  pass.value = "";
+}
+
+function volver(){
+  window.location.href = "/admin";
+}
+</script>
+
+</body>
+</html>

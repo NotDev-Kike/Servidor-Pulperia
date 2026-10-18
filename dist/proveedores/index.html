@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Proveedores</title>
+
+<style>
+body {
+  font-family: Arial;
+  margin: 0;
+  background: #f4f6f9;
+}
+
+.header {
+  background: #2c3e50;
+  color: white;
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header button {
+  background: #e74c3c;
+  border: none;
+  color: white;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.container {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+}
+
+.card {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  width: 320px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+.input-group {
+  margin-bottom: 12px;
+}
+
+label {
+  font-size: 14px;
+  color: #555;
+}
+
+input {
+  width: 100%;
+  padding: 12px;
+  margin-top: 5px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+
+button.main {
+  width: 100%;
+  padding: 12px;
+  background: #3498db;
+  color: white;
+  border: none;
+  margin-top: 10px;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+button.secondary {
+  width: 100%;
+  padding: 10px;
+  margin-top: 5px;
+  background: #95a5a6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+}
+
+.table-container {
+  flex: 1;
+}
+
+.search {
+  margin-bottom: 10px;
+}
+
+.search input {
+  width: 300px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+th {
+  background: #34495e;
+  color: white;
+}
+
+th, td {
+  padding: 10px;
+  border: 1px solid #ddd;
+  text-align: center;
+}
+
+tr:hover {
+  background: #f1f1f1;
+}
+
+.actions button {
+  margin: 2px;
+  padding: 6px;
+  cursor: pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  <span>📦 Gestión de Productos</span>
+  <button onclick="irMenu()">⬅ Menú</button>
+</div>
+
+<div class="container">
+
+<div class="card">
+
+  <div class="input-group">
+    <label>Código</label>
+    <input id="barcode">
+  </div>
+
+  <div class="input-group">
+    <label>Nombre</label>
+    <input id="name">
+  </div>
+
+  <div class="input-group">
+    <label>Precio</label>
+    <input id="price" type="number">
+  </div>
+
+  <div class="input-group">
+    <label>Stock</label>
+    <input id="stock" type="number">
+  </div>
+
+  <button class="main" onclick="guardar()">Guardar</button>
+  <button class="secondary" onclick="limpiar()">Limpiar</button>
+
+</div>
+
+<div class="table-container">
+
+  <h2>Productos</h2>
+
+  <div class="search">
+    <input placeholder="Buscar producto..." onkeyup="buscar(this.value)">
+  </div>
+
+  <div id="tabla"></div>
+
+</div>
+
+</div>
+
+<script src="app.js"></script>
+
+<script>
+if (!localStorage.getItem("auth")) {
+  window.location.href = "/login";
+}
+
+function irMenu() {
+  window.location.href = "/menu";
+}
+</script>
+
+</body>
+</html>

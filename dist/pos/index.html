@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>POS - Caja</title>
+
+<style>
+body {
+  font-family: Arial;
+  margin: 0;
+  background: #ecf0f1;
+}
+
+.header {
+  background: #2c3e50;
+  color: white;
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 20px;
+}
+
+.container {
+  display: flex;
+  height: calc(100vh - 60px);
+}
+
+.left {
+  width: 70%;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+input {
+  width: 100%;
+  padding: 18px;
+  font-size: 20px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  border: 2px solid #3498db;
+}
+
+.producto {
+  background: white;
+  margin: 10px 0;
+  padding: 15px;
+  border-radius: 10px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.controls button {
+  margin: 0 3px;
+  padding: 5px 10px;
+}
+
+.right {
+  width: 30%;
+  background: #bdc3c7;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.total {
+  font-size: 35px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.cambio {
+  font-size: 20px;
+  text-align: center;
+  margin-top: 10px;
+}
+
+button.main {
+  width: 100%;
+  padding: 15px;
+  margin-top: 10px;
+  font-size: 18px;
+  border: none;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.cobrar { background: #27ae60; color: white; }
+.cancelar { background: #e74c3c; color: white; }
+
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  <span>🛒 Caja</span>
+  <button onclick="irMenu()">⬅ Menú</button>
+</div>
+
+<div class="container">
+
+<div class="left">
+
+<input id="barcode" placeholder="Escanear producto..." autofocus>
+
+<div id="lista"></div>
+
+</div>
+
+<div class="right">
+
+<div>
+  <div class="total">L <span id="total">0</span></div>
+
+  <input id="paga" placeholder="Cliente paga con..." type="number">
+
+  <div class="cambio">
+    Cambio: L <span id="cambio">0</span>
+  </div>
+</div>
+
+<div>
+  <button class="main cobrar" onclick="finalizar()">Cobrar</button>
+  <button class="main cancelar" onclick="cancelar()">Cancelar</button>
+</div>
+
+</div>
+
+</div>
+
+<script src="app.js"></script>
+
+<script>
+if (!localStorage.getItem("auth")) {
+  window.location.href = "/login";
+}
+
+function irMenu() {
+  window.location.href = "/menu";
+}
+</script>
+
+</body>
+</html>

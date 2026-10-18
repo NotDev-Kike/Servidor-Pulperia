@@ -1,0 +1,40 @@
+-----(importante) contabilidad automatica
+
+Login
+
+- admin
+- usuario (vendedor)
+
+Menu
+
+- Facturas:
+	- Factura = numero de factura, fecha, vendido a: , vendedor, terminos, Total lempiras
+		Botones a usar = crear, modificar, eliminar, listar
+
+	- Reportes Totales = ventas por fechas, Libro de ventas, Ventas por vendedor, Ventas por clientes, factura eliminada
+	- Devolucion =
+		Botones a usar = crear, modificar, eliminar, listar
+	- Consultar = mostrar lo que tenga cada cliente, botones devolucion que muestre la factura y que deje especificar 	  que producto tiene inconveniente
+
+- Cuentas por cobrar (Registro):
+	- ventas, creditos y debitos = numero de factura, emitido, cliente, tipo de documento, descripcion, vence, monto 	  lempira, estado
+	
+	- Reportes = resumen de pagos, facturas por cobrar, balances de clientes
+
+- Contabilidad = 
+
+- Inventario:
+	- compras = numero de compra, fecha,
+	- 
+
+
+TOMAR EN CUENTA PARA LA HORA DE PAGAR LAS FACTURAS QUE ENTRAN COMO CUENTAS A POR COBRAR.
+
+
+orden del programa =
+1. parametros (IVA 15% Y 18%)
+2. clientes(si quiere el cliente no es obligatorio, podria aplicar para un % de descuento)-proveedores
+3. cuentas corrientes
+4. compras (inventario)
+5. facturas
+6. contabilidad (reporte total)
