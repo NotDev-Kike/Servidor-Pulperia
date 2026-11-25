@@ -53,6 +53,7 @@ El vendedor tiene un flujo simplificado para operar la tienda:
 - Puede ajustar precio de venta y existencias.
 - Puede consultar alertas de stock bajo.
 - Puede recibir productos de proveedores y actualizar las existencias cuando llega un pedido realizado por administración.
+- En las recepciones, el vendedor no puede modificar el costo unitario; el sistema usa el costo definido previamente por administración.
 
 El vendedor no tiene acceso a compras, proveedores, reportes completos, usuarios ni eliminación de productos. Estas restricciones existen tanto en el menú como en el backend.
 
