@@ -52,6 +52,7 @@ El vendedor tiene un flujo simplificado para operar la tienda:
 - Puede agregar o actualizar productos del inventario.
 - Puede ajustar precio de venta y existencias.
 - Puede consultar alertas de stock bajo.
+- Puede recibir productos de proveedores y actualizar las existencias cuando llega un pedido realizado por administración.
 
 El vendedor no tiene acceso a compras, proveedores, reportes completos, usuarios ni eliminación de productos. Estas restricciones existen tanto en el menú como en el backend.
 
@@ -248,7 +249,7 @@ Todas las rutas protegidas requieren una sesión válida.
 - `GET /api/suppliers`: listar proveedores.
 - `POST /api/suppliers`: crear proveedor; solo administrador.
 - `GET /api/purchases`: listar compras; solo administrador.
-- `POST /api/purchases`: registrar compra; solo administrador.
+- `POST /api/purchases`: registrar recepción de productos; administrador o vendedor.
 
 ### Administración
 
