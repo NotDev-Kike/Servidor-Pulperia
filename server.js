@@ -20,28 +20,52 @@ async function ensureDatabase() {
   await databaseReady;
 }
 const app = express();
-app.use(helmet({ contentSecurityPolicy: false }));
+app.disable('x-powered-by');
+app.use(helmet(process.env.NODE_ENV === 'production' ? {
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", 'data:'],
+      connectSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      frameAncestors: ["'none'"],
+    },
+  },
+} : { contentSecurityPolicy: false }));
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
 app.get('/api/health', (_, res) => res.json({ ok: true, service: 'servidor-pulperia' }));
 app.use('/api', async (_, __, next) => { try { await ensureDatabase(); next(); } catch (error) { next(error); } });
 
 const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_ISSUER = 'servidor-pulperia';
+const JWT_AUDIENCE = 'pulperia-web';
+const SESSION_COOKIE = process.env.NODE_ENV === 'production' ? '__Host-session' : 'session';
+const loginAttempts = new Map();
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const LOGIN_MAX_ATTEMPTS = 10;
 const productSchema = z.object({ barcode:z.string().trim().min(1).max(80), name:z.string().trim().min(1).max(160), price:z.coerce.number().min(0), stock:z.coerce.number().int().min(0), cost_price:z.coerce.number().min(0).default(0), tax_rate:z.coerce.number().min(0).max(100).default(0), min_stock:z.coerce.number().int().min(0).default(5), category_id:z.coerce.number().int().positive().nullable().optional(), supplier_id:z.coerce.number().int().positive().nullable().optional() });
 const userSchema = z.object({ username:z.string().trim().min(3).max(80), password:z.string().min(6).max(200), role:z.enum(['admin','vendedor']).default('vendedor') });
 const id = value => Number.parseInt(value, 10);
 const productView = row => row && ({...row, id:Number(row.id), price:Number(row.price), stock:Number(row.stock), cost_price:Number(row.cost_price||0), tax_rate:Number(row.tax_rate||0), min_stock:Number(row.min_stock||0), category_id:row.category_id===null?null:Number(row.category_id), supplier_id:row.supplier_id===null?null:Number(row.supplier_id)});
 const saleView = row => ({...row, id:Number(row.id), total:Number(row.total), subtotal:Number(row.subtotal||0), tax:Number(row.tax||0), discount:Number(row.discount||0), amount_paid:Number(row.amount_paid||0), change_given:Number(row.change_given||0), user_id:row.user_id === null ? null : Number(row.user_id), customer_id:row.customer_id === null ? null : Number(row.customer_id)});
 const moneyView = row => row && ({...row, id:Number(row.id), subtotal:Number(row.subtotal||0), tax:Number(row.tax||0), total:Number(row.total||0), discount:Number(row.discount||0)});
-function issue(user,res){res.cookie('session',jwt.sign({id:user.id,username:user.username,role:user.role},JWT_SECRET,{expiresIn:'8h'}),{httpOnly:true,sameSite:'lax',secure:process.env.NODE_ENV==='production',maxAge:28800000});}
-function auth(req,res,next){try{req.user=jwt.verify(req.cookies.session||'',JWT_SECRET);next()}catch{res.status(401).json({error:'Sesión no válida'})}}
+function securityConfig(){if(!JWT_SECRET||JWT_SECRET.length<32)throw new Error('La configuración de seguridad no es válida');}
+function issue(user,res){securityConfig();res.cookie(SESSION_COOKIE,jwt.sign({id:user.id,username:user.username,role:user.role},JWT_SECRET,{subject:String(user.id),issuer:JWT_ISSUER,audience:JWT_AUDIENCE,expiresIn:'8h'}),{httpOnly:true,sameSite:'lax',secure:process.env.NODE_ENV==='production',path:'/',maxAge:28800000});}
+function auth(req,res,next){try{securityConfig();req.user=jwt.verify(req.cookies[SESSION_COOKIE]||'',JWT_SECRET,{issuer:JWT_ISSUER,audience:JWT_AUDIENCE,algorithms:['HS256']});next()}catch{res.status(401).json({error:'Sesión no válida'})}}
+function sameOrigin(req,res,next){if(process.env.NODE_ENV!=='production'||!['POST','PUT','PATCH','DELETE'].includes(req.method))return next();const origin=req.get('origin');if(!origin)return next();const forwardedHost=req.get('x-forwarded-host')||req.get('host');try{if(new URL(origin).host!==forwardedHost)return res.status(403).json({error:'Solicitud no permitida'});}catch{return res.status(403).json({error:'Solicitud no permitida'})}next()}
+function loginRateLimit(req,res,next){const now=Date.now();const ip=(req.get('x-forwarded-for')||req.ip||'unknown').split(',')[0].trim();const username=typeof req.body?.username==='string'?req.body.username.trim().toLowerCase():'unknown';const key=`${ip}:${username}`;const current=loginAttempts.get(key);if(!current||now-current.startedAt>LOGIN_WINDOW_MS){loginAttempts.set(key,{startedAt:now,count:1});return next()}if(current.count>=LOGIN_MAX_ATTEMPTS){const retry=Math.ceil((LOGIN_WINDOW_MS-(now-current.startedAt))/1000);res.set('Retry-After',String(retry));return res.status(429).json({error:'Demasiados intentos. Espera unos minutos e inténtalo de nuevo.'})}current.count+=1;next()}
 function adminOnly(req,res,next){if(req.user?.role==='vendedor'&&['POST','PUT'].includes(req.method)&&req.path.startsWith('/api/products'))return next();if(req.user?.role!=='admin')return res.status(403).json({error:'Se requiere rol administrador'});next()}
 function canReceive(req,res,next){if(!['admin','vendedor'].includes(req.user?.role))return res.status(403).json({error:'No tienes permiso para recibir productos'});next()}
 function parsed(schema,body,res){const result=schema.safeParse(body);if(!result.success){res.status(400).json({error:result.error.issues[0]?.message||'Datos inválidos'});return null}return result.data}
 function dbError(res,error,status=400){console.error(error);return res.status(status).json({error:process.env.NODE_ENV==='production'?'No se pudo completar la operación':(error.message||'Error de base de datos')})}
 
-app.post('/api/auth/login',async(req,res)=>{try{if(!JWT_SECRET)throw new Error('Falta JWT_SECRET');const body=parsed(z.object({username:z.string().trim().min(3).max(80),password:z.string().min(1).max(200)}),req.body,res);if(!body)return;const rows=await sql`select * from public.users where username=${body.username} limit 1`;const user=rows[0];const valid=user&&(user.password.startsWith('$2')?bcrypt.compareSync(body.password,user.password):user.password===body.password);if(!valid)return res.status(401).json({error:'Usuario o contraseña incorrectos'});if(!user.password.startsWith('$2'))await sql`update public.users set password=${bcrypt.hashSync(body.password,12)} where id=${user.id}`;issue(user,res);res.json({user:{id:user.id,username:user.username,role:user.role}})}catch(e){dbError(res,e,500)}});
-app.post('/api/auth/logout',(_,res)=>{res.clearCookie('session');res.status(204).end()});
+app.use('/api', sameOrigin);
+app.post('/api/auth/login',loginRateLimit,async(req,res)=>{try{securityConfig();const body=parsed(z.object({username:z.string().trim().min(1,'Ingresa tu usuario').max(80),password:z.string().min(1,'Ingresa tu contraseña').max(200)}),req.body,res);if(!body)return;const rows=await sql`select * from public.users where username=${body.username} limit 1`;const user=rows[0];const valid=user&&user.password.startsWith('$2')&&await bcrypt.compare(body.password,user.password);if(!valid)return res.status(401).json({error:'Usuario o contraseña incorrectos'});loginAttempts.delete(`${(req.get('x-forwarded-for')||req.ip||'unknown').split(',')[0].trim()}:${body.username.toLowerCase()}`);issue(user,res);res.json({user:{id:user.id,username:user.username,role:user.role}})}catch(e){dbError(res,e,500)}});
+app.post('/api/auth/logout',(_,res)=>{res.clearCookie(SESSION_COOKIE,{path:'/'});res.status(204).end()});
 app.get('/api/auth/me',auth,(req,res)=>res.json({user:req.user}));
 
 app.get('/api/products',auth,async(_,res)=>{try{res.json((await sql`select * from public.products order by name collate "C"`).map(productView))}catch(e){dbError(res,e,500)}});

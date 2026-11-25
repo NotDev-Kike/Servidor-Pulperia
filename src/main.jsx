@@ -34,8 +34,17 @@ class AppErrorBoundary extends React.Component {
 function Login({ onLogin }) {
   const [form, setForm] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
-  async function submit(event) { event.preventDefault(); try { await api('/auth/login', { method: 'POST', body: JSON.stringify(form) }); onLogin(); } catch (e) { setError(e.message); } }
-  return <main className="auth"><form className="auth-card" onSubmit={submit}><div className="brand">🛒</div><h1>Pulpería</h1><p className="muted">Administración para minisúper</p><label>Usuario<input autoFocus value={form.username} onChange={e => setForm({ ...form, username: e.target.value })} /></label><label>Contraseña<input type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} /></label>{error && <div className="error">{error}</div>}<button className="primary wide">Iniciar sesión</button></form></main>;
+  const [loading, setLoading] = useState(false);
+  async function submit(event) {
+    event.preventDefault();
+    setError('');
+    if (!form.username.trim() || !form.password) { setError('Ingresa tu usuario y contraseña.'); return; }
+    setLoading(true);
+    try { await api('/auth/login', { method: 'POST', body: JSON.stringify({ username: form.username.trim(), password: form.password }) }); onLogin(); }
+    catch (e) { setError(e.message); }
+    finally { setLoading(false); }
+  }
+  return <main className="auth"><form className="auth-card" onSubmit={submit} noValidate><div className="brand">🛒</div><h1>Pulpería</h1><p className="muted">Administración para minisúper</p><label>Usuario<input autoFocus autoComplete="username" value={form.username} onChange={e => setForm({ ...form, username: e.target.value })} /></label><label>Contraseña<input type="password" autoComplete="current-password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} /></label>{error && <div className="error" role="alert">{error}</div>}<button className="primary wide" disabled={loading}>{loading ? 'Verificando…' : 'Iniciar sesión'}</button></form></main>;
 }
 
 function Dashboard({ products, admin, onNavigate }) {

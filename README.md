@@ -23,6 +23,7 @@ Sistema web para administrar una pulpería, tienda de barrio o minisúper. Inclu
 - Contraseñas protegidas con bcryptjs.
 - Sesiones protegidas mediante cookie HTTP-only y JWT.
 - Cabeceras de seguridad mediante Helmet.
+- Protección contra intentos repetidos de inicio de sesión y validación de origen en producción.
 
 ## Roles y permisos
 
@@ -286,6 +287,7 @@ Servidor-Pulperia/
 - No subas `.env` al repositorio.
 - No escribas contraseñas de Supabase en el README, código fuente o capturas.
 - Usa una clave `JWT_SECRET` larga y aleatoria.
+- Mantén `JWT_SECRET` con al menos 32 caracteres y no lo compartas en GitHub, capturas ni chats.
 - Cambia la contraseña de la base de datos si fue compartida públicamente.
 - En producción configura `NODE_ENV=production` para activar cookies seguras.
 - Usa HTTPS cuando publiques el sistema.
