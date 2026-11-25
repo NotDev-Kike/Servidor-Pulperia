@@ -235,6 +235,8 @@ begin
     line_total:=product_row.price*qty; subtotal:=subtotal+line_total;
   end loop;
   total:=subtotal; if p_payment_method='credito' then paid:=0; end if;
+  if p_payment_method='efectivo' and paid < total then raise exception 'El pago recibido es menor que el total'; end if;
+  if p_payment_method='credito' and customer_row.credit_limit > 0 and customer_row.balance + total > customer_row.credit_limit then raise exception 'El cliente supera su límite de crédito'; end if;
   insert into public.sales(total,date,user_id,customer_id,subtotal,discount,tax,payment_method,payment_status,amount_paid,change_given,notes,transfer_status)
   values(total,now(),p_user_id,p_customer_id,subtotal,0,0,p_payment_method,case when p_payment_method='credito' then 'pendiente' else 'pagada' end,paid,greatest(0,paid-total),p_notes,case when p_payment_method='transferencia' then 'pendiente' else 'no_aplica' end) returning id into sale_id;
   for item in select * from jsonb_array_elements(p_items) loop
@@ -245,3 +247,20 @@ begin
   if p_payment_method='credito' then update public.customers set balance=balance+total where id=p_customer_id; end if;
   return jsonb_build_object('id',sale_id,'subtotal',subtotal,'tax',0,'discount',0,'total',total,'change_given',greatest(0,paid-total),'payment_status',case when p_payment_method='transferencia' then 'pendiente' else 'pagada' end);
 end; $$;
+
+-- Mantiene consistentes inventario y saldo cuando una venta se elimina.
+create or replace function public.delete_sale(p_sale_id bigint)
+returns void language plpgsql security definer set search_path = public as $$
+declare sale_row public.sales%rowtype;
+begin
+  select * into sale_row from public.sales where id = p_sale_id for update;
+  if not found then raise exception 'Venta no encontrada'; end if;
+  update public.products p set stock = p.stock + si.quantity, updated_at = now()
+  from public.sale_items si where si.sale_id = p_sale_id and p.id = si.product_id;
+  if sale_row.payment_method = 'credito' and sale_row.customer_id is not null then
+    update public.customers set balance = greatest(0, balance - sale_row.total)
+    where id = sale_row.customer_id;
+  end if;
+  delete from public.sales where id = p_sale_id;
+end; $$;
+grant execute on function public.delete_sale(bigint) to service_role;
