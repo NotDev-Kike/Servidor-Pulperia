@@ -11,16 +11,22 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
-if (!process.env.DATABASE_URL) throw new Error('Configura DATABASE_URL en el archivo .env');
 // Supabase pooler: prepare:false evita problemas con conexiones reutilizadas.
-const sql = postgres(process.env.DATABASE_URL, { prepare: false, max: 10, idle_timeout: 20, onnotice: () => {} });
-await sql.unsafe(await fs.readFile(path.join(root, 'supabase', 'upgrade.sql'), 'utf8'));
+const sql = postgres(process.env.DATABASE_URL || '', { prepare: false, max: 10, idle_timeout: 20, onnotice: () => {} });
+let databaseReady;
+async function ensureDatabase() {
+  if (!process.env.DATABASE_URL) throw new Error('Configura DATABASE_URL en las variables de entorno');
+  databaseReady ??= fs.readFile(path.join(root, 'supabase', 'upgrade.sql'), 'utf8').then(migration => sql.unsafe(migration));
+  await databaseReady;
+}
 const app = express();
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
+app.get('/api/health', (_, res) => res.json({ ok: true, service: 'servidor-pulperia' }));
+app.use('/api', async (_, __, next) => { try { await ensureDatabase(); next(); } catch (error) { next(error); } });
 
-const JWT_SECRET = process.env.JWT_SECRET || 'cambia-esta-clave-en-produccion';
+const JWT_SECRET = process.env.JWT_SECRET;
 const productSchema = z.object({ barcode:z.string().trim().min(1).max(80), name:z.string().trim().min(1).max(160), price:z.coerce.number().min(0), stock:z.coerce.number().int().min(0), cost_price:z.coerce.number().min(0).default(0), tax_rate:z.coerce.number().min(0).max(100).default(0), min_stock:z.coerce.number().int().min(0).default(5), category_id:z.coerce.number().int().positive().nullable().optional(), supplier_id:z.coerce.number().int().positive().nullable().optional() });
 const userSchema = z.object({ username:z.string().trim().min(3).max(80), password:z.string().min(6).max(200), role:z.enum(['admin','vendedor']).default('vendedor') });
 const id = value => Number.parseInt(value, 10);
@@ -31,9 +37,9 @@ function issue(user,res){res.cookie('session',jwt.sign({id:user.id,username:user
 function auth(req,res,next){try{req.user=jwt.verify(req.cookies.session||'',JWT_SECRET);next()}catch{res.status(401).json({error:'Sesión no válida'})}}
 function adminOnly(req,res,next){if(req.user?.role==='vendedor'&&['POST','PUT'].includes(req.method)&&req.path.startsWith('/api/products'))return next();if(req.user?.role!=='admin')return res.status(403).json({error:'Se requiere rol administrador'});next()}
 function parsed(schema,body,res){const result=schema.safeParse(body);if(!result.success){res.status(400).json({error:result.error.issues[0]?.message||'Datos inválidos'});return null}return result.data}
-function dbError(res,error,status=400){console.error(error);return res.status(status).json({error:error.message||'Error de base de datos'})}
+function dbError(res,error,status=400){console.error(error);return res.status(status).json({error:process.env.NODE_ENV==='production'?'No se pudo completar la operación':(error.message||'Error de base de datos')})}
 
-app.post('/api/auth/login',async(req,res)=>{try{const body=parsed(z.object({username:z.string(),password:z.string()}),req.body,res);if(!body)return;const rows=await sql`select * from public.users where username=${body.username} limit 1`;const user=rows[0];const valid=user&&(user.password.startsWith('$2')?bcrypt.compareSync(body.password,user.password):user.password===body.password);if(!valid)return res.status(401).json({error:'Usuario o contraseña incorrectos'});if(!user.password.startsWith('$2'))await sql`update public.users set password=${bcrypt.hashSync(body.password,12)} where id=${user.id}`;issue(user,res);res.json({user:{id:user.id,username:user.username,role:user.role}})}catch(e){dbError(res,e,500)}});
+app.post('/api/auth/login',async(req,res)=>{try{if(!JWT_SECRET)throw new Error('Falta JWT_SECRET');const body=parsed(z.object({username:z.string().trim().min(3).max(80),password:z.string().min(1).max(200)}),req.body,res);if(!body)return;const rows=await sql`select * from public.users where username=${body.username} limit 1`;const user=rows[0];const valid=user&&(user.password.startsWith('$2')?bcrypt.compareSync(body.password,user.password):user.password===body.password);if(!valid)return res.status(401).json({error:'Usuario o contraseña incorrectos'});if(!user.password.startsWith('$2'))await sql`update public.users set password=${bcrypt.hashSync(body.password,12)} where id=${user.id}`;issue(user,res);res.json({user:{id:user.id,username:user.username,role:user.role}})}catch(e){dbError(res,e,500)}});
 app.post('/api/auth/logout',(_,res)=>{res.clearCookie('session');res.status(204).end()});
 app.get('/api/auth/me',auth,(req,res)=>res.json({user:req.user}));
 
@@ -65,11 +71,13 @@ app.put('/api/settings',auth,adminOnly,async(req,res)=>{try{const b=z.object({na
 
 app.get('/api/customers/:id/payments',auth,async(req,res)=>{try{const rows=await sql`select p.*,u.username from public.payments p left join public.users u on u.id=p.user_id where p.customer_id=${id(req.params.id)} order by p.id desc`;res.json(rows.map(row=>({...row,id:Number(row.id),customer_id:Number(row.customer_id),amount:Number(row.amount),user_id:row.user_id===null?null:Number(row.user_id)})))}catch(e){dbError(res,e,500)}});
 app.put('/api/customers/:id/credit',auth,async(req,res)=>{try{const body=z.object({credit_enabled:z.coerce.boolean(),credit_notes:z.string().max(500).optional()}).parse(req.body);const rows=await sql`update public.customers set credit_enabled=${body.credit_enabled},credit_notes=${body.credit_notes||null} where id=${id(req.params.id)} returning id,name,credit_enabled,credit_notes`;if(!rows[0])return res.status(404).json({error:'Cliente no encontrado'});res.json({...rows[0],id:Number(rows[0].id)})}catch(e){dbError(res,e)}});
-app.post('/api/sales/:id/verify-transfer',auth,async(req,res)=>{try{const body=z.object({approved:z.coerce.boolean(),notes:z.string().max(500).optional()}).parse(req.body);const saleId=id(req.params.id);const rows=await sql`update public.sales set transfer_status=${body.approved?'verificada':'rechazada'},payment_status=${body.approved?'pagada':'rechazada'},transfer_verified_by=${req.user.id},transfer_verified_at=now(),notes=coalesce(${body.notes||null},notes) where id=${saleId} and payment_method='transferencia' returning id,transfer_status,payment_status`;if(!rows[0])return res.status(404).json({error:'Transferencia no encontrada'});res.json({...rows[0],id:Number(rows[0].id)})}catch(e){dbError(res,e)}});
-app.post('/api/payments/:id/verify-transfer',auth,async(req,res)=>{try{const body=z.object({approved:z.coerce.boolean(),notes:z.string().max(500).optional()}).parse(req.body);const paymentId=id(req.params.id);const rows=await sql`update public.payments set transfer_status=${body.approved?'verificada':'rechazada'},verified_by=${req.user.id},verified_at=now(),notes=coalesce(${body.notes||null},notes) where id=${paymentId} and payment_method='transferencia' and transfer_status='pendiente' returning id,customer_id,amount,transfer_status`;if(!rows[0])return res.status(404).json({error:'Transferencia pendiente no encontrada'});if(body.approved)await sql`update public.customers set balance=greatest(0,balance-${rows[0].amount}) where id=${rows[0].customer_id}`;res.json({...rows[0],id:Number(rows[0].id),customer_id:Number(rows[0].customer_id),amount:Number(rows[0].amount)})}catch(e){dbError(res,e)}});
-app.get('/api/transfers/pending',auth,async(_,res)=>{try{const rows=await sql`select s.id,s.date,s.total,s.transfer_reference,s.transfer_bank,c.name as customer_name from public.sales s left join public.customers c on c.id=s.customer_id where s.payment_method='transferencia' and s.transfer_status='pendiente' order by s.id desc`;res.json(rows.map(row=>({...row,id:Number(row.id),total:Number(row.total)})))}catch(e){dbError(res,e,500)}});
+app.post('/api/sales/:id/verify-transfer',auth,adminOnly,async(req,res)=>{try{const body=z.object({approved:z.coerce.boolean(),notes:z.string().max(500).optional()}).parse(req.body);const saleId=id(req.params.id);const rows=await sql`update public.sales set transfer_status=${body.approved?'verificada':'rechazada'},payment_status=${body.approved?'pagada':'rechazada'},transfer_verified_by=${req.user.id},transfer_verified_at=now(),notes=coalesce(${body.notes||null},notes) where id=${saleId} and payment_method='transferencia' and transfer_status='pendiente' returning id,transfer_status,payment_status`;if(!rows[0])return res.status(404).json({error:'Transferencia no encontrada'});res.json({...rows[0],id:Number(rows[0].id)})}catch(e){dbError(res,e)}});
+app.post('/api/payments/:id/verify-transfer',auth,adminOnly,async(req,res)=>{try{const body=z.object({approved:z.coerce.boolean(),notes:z.string().max(500).optional()}).parse(req.body);const paymentId=id(req.params.id);const rows=await sql`update public.payments set transfer_status=${body.approved?'verificada':'rechazada'},verified_by=${req.user.id},verified_at=now(),notes=coalesce(${body.notes||null},notes) where id=${paymentId} and payment_method='transferencia' and transfer_status='pendiente' returning id,customer_id,amount,transfer_status`;if(!rows[0])return res.status(404).json({error:'Transferencia pendiente no encontrada'});if(body.approved)await sql`update public.customers set balance=greatest(0,balance-${rows[0].amount}) where id=${rows[0].customer_id}`;res.json({...rows[0],id:Number(rows[0].id),customer_id:Number(rows[0].customer_id),amount:Number(rows[0].amount)})}catch(e){dbError(res,e)}});
+app.get('/api/transfers/pending',auth,adminOnly,async(_,res)=>{try{const rows=await sql`select s.id,s.date,s.total,s.transfer_reference,s.transfer_bank,c.name as customer_name from public.sales s left join public.customers c on c.id=s.customer_id where s.payment_method='transferencia' and s.transfer_status='pendiente' order by s.id desc`;res.json(rows.map(row=>({...row,id:Number(row.id),total:Number(row.total)})))}catch(e){dbError(res,e,500)}});
 const dist=path.join(root,'dist');
 app.use(express.static(dist));
 app.use((req,res,next)=>req.path.startsWith('/api/')?next():res.sendFile(path.join(dist,'index.html')));
 app.use((_,res)=>res.status(404).json({error:'Ruta no encontrada'}));
-app.listen(process.env.PORT||3000,'0.0.0.0',()=>console.log(`Pulpería lista en http://localhost:${process.env.PORT||3000}`));
+if (!process.env.VERCEL) app.listen(process.env.PORT||3000,'0.0.0.0',()=>console.log(`Pulpería lista en http://localhost:${process.env.PORT||3000}`));
+
+export default app;

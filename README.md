@@ -173,6 +173,25 @@ La compilación genera la carpeta `dist`, que es servida por Express.
 npm run preview
 ```
 
+## Despliegue en Vercel
+
+El proyecto está preparado para ejecutarse como frontend estático de Vite y API Express serverless.
+
+1. Sube el repositorio a GitHub y crea un proyecto nuevo en Vercel.
+2. Vercel detectará `vercel.json`; usa `npm run build` y la carpeta `dist`.
+3. Configura estas variables en **Settings → Environment Variables** para `Production` y `Preview`:
+
+```env
+DATABASE_URL=postgresql://usuario:contraseña@host:puerto/postgres
+JWT_SECRET=una-clave-aleatoria-larga
+NODE_ENV=production
+```
+
+4. Despliega y abre `/api/health`; debe responder `{ "ok": true, ... }`.
+5. Ejecuta el SQL de `supabase/schema.sql` y `supabase/upgrade.sql` en Supabase antes de iniciar sesión.
+
+La conexión usa el pooler de Supabase y la migración adicional se ejecuta una sola vez por instancia serverless. No subas `.env` ni coloques `DATABASE_URL` en variables públicas del frontend.
+
 ## Flujo de una venta
 
 1. El vendedor inicia sesión.
